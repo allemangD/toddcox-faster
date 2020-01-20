@@ -9,6 +9,10 @@ namespace tc {
         : from_idx(from_idx), gen(gen) {
     }
 
+    Path::Path(const tc::Group &context)
+        : context(context), path() {
+    }
+
     void Path::add_row() {
         path.resize(path.size() + 1);
     }
@@ -25,18 +29,18 @@ namespace tc {
         return path.size();
     }
 
-    Cosets::Cosets(int ngens)
-        : ngens(ngens) {
+    Cosets::Cosets(const tc::Group &context)
+        : path(context), context(context), data() {
     }
 
     void Cosets::add_row() {
-        data.resize(data.size() + ngens, -1);
+        data.resize(data.size() + context.ngens, -1);
         path.add_row();
     }
 
     void Cosets::put(int coset, int gen, int target) {
-        data[coset * ngens + gen] = target;
-        data[target * ngens + gen] = coset;
+        data[coset * context.ngens + gen] = target;
+        data[target * context.ngens + gen] = coset;
 
         if (path.get(target).from_idx == -1) {
             path.put(coset, gen, target);
@@ -44,10 +48,10 @@ namespace tc {
     }
 
     void Cosets::put(int idx, int target) {
-        int coset = idx / ngens;
-        int gen = idx % ngens;
+        int coset = idx / context.ngens;
+        int gen = idx % context.ngens;
         data[idx] = target;
-        data[target * ngens + gen] = coset;
+        data[target * context.ngens + gen] = coset;
 
         if (path.get(target).from_idx == -1) {
             path.put(coset, gen, target);
@@ -55,7 +59,7 @@ namespace tc {
     }
 
     int Cosets::get(int coset, int gen) const {
-        return data[coset * ngens + gen];
+        return data[coset * context.ngens + gen];
     }
 
     int Cosets::get(int idx) const {

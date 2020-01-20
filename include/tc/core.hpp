@@ -6,6 +6,13 @@
 #include <string>
 
 namespace tc {
+    struct Action;
+    struct Path;
+    struct Cosets;
+    struct Rel;
+    struct Group;
+    struct SubGroup;
+
     struct Action {
         int from_idx = -1;
         int gen = -1;
@@ -18,9 +25,10 @@ namespace tc {
     };
 
     struct Path {
+        const tc::Group &context;
         std::vector<Action> path;
 
-        Path() = default;
+        explicit Path(const tc::Group &context);
 
         Path(const Path &) = default;
 
@@ -71,13 +79,14 @@ namespace tc {
     };
 
     struct Cosets {
-        int ngens;
+        const tc::Group &context;
+
         std::vector<int> data;
         Path path;
 
         Cosets(const Cosets &) = default;
 
-        explicit Cosets(int ngens);
+        explicit Cosets(const tc::Group &context);
 
         void add_row();
 
@@ -104,8 +113,6 @@ namespace tc {
 
         [[nodiscard]] Rel shift(int off) const;
     };
-
-    struct SubGroup;
 
     struct Group {
         const int ngens;
