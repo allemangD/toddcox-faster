@@ -96,7 +96,7 @@ namespace tc {
         return _mults[a][b];
     }
 
-    std::vector<Rel> Group::rels() const {
+    std::vector<Rel> Group::get_rels() const {
         std::vector<Rel> res;
         for (int i = 0; i < ngens - 1; ++i) {
             for (int j = i + 1; j < ngens; ++j) {
@@ -114,9 +114,9 @@ namespace tc {
         std::stringstream ss;
         ss << name << "*" << other.name;
 
-        Group g(ngens + other.ngens, rels(), ss.str());
+        Group g(ngens + other.ngens, get_rels(), ss.str());
 
-        for (const auto &rel : other.rels()) {
+        for (const auto &rel : other.get_rels()) {
             g.set(rel.shift(ngens));
         }
 
@@ -128,7 +128,7 @@ namespace tc {
         ss << name << "^" << p;
 
         Group g(ngens * p, {}, ss.str());
-        for (const auto &rel : rels()) {
+        for (const auto &rel : get_rels()) {
             for (int off = 0; off < g.ngens; off += ngens) {
                 g.set(rel.shift(off));
             }

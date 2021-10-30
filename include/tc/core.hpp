@@ -141,7 +141,7 @@ namespace tc {
 
         [[nodiscard]] int get(int a, int b) const;
 
-        [[nodiscard]] std::vector<Rel> rels() const;
+        [[nodiscard]] std::vector<Rel> get_rels() const;
 
         [[nodiscard]] SubGroup subgroup(const std::vector<int> &gens) const;
 
