@@ -34,7 +34,7 @@ namespace tc {
     std::vector<std::vector<int>> dependency_map(int ngens, const std::vector<Rel> &rels) {
         std::vector<std::vector<int>> deps(ngens);
         for (int irel = 0; irel < rels.size(); ++irel) {
-            const Rel& rel = rels[irel];
+            const Rel &rel = rels[irel];
             deps[rel.gens[0]].push_back(irel);
             deps[rel.gens[1]].push_back(irel);
         }
@@ -84,8 +84,8 @@ namespace tc {
             cosets.add_row();
             tables.add_row();
 
-            std::vector<int> facts;
-            facts.push_back(idx);
+            std::priority_queue<int> facts;
+            facts.push(idx);
 
             // todo nothing before the current coset will be used.
             //  delete all table rows using old cosets to free memory early.
@@ -93,8 +93,8 @@ namespace tc {
             //  old blocks.
 
             while (!facts.empty()) {
-                int fact_idx = facts.back();
-                facts.pop_back();
+                int fact_idx = facts.top();
+                facts.pop();
 
                 if (cosets.get(fact_idx) != -1)
                     continue;
@@ -107,7 +107,7 @@ namespace tc {
                 if (target == coset) {
                     for (int irel: deps[gen]) {
                         Row &target_row = tables(irel, target);
-                        if (target_row.lst == nullptr){
+                        if (target_row.lst == nullptr) {
                             target_row.gnr = -1;
                         }
                     }
@@ -130,19 +130,17 @@ namespace tc {
                             // forward learn
                             int lst = *target_row.lst;
                             int gen_ = rel.gens[rel.gens[0] == gen];
-                            facts.push_back(lst * ngens + gen_);
+                            facts.push(lst * ngens + gen_);
                         } else if (target_row.gnr == -rel.mult) {
                             // stationary learn
                             int gen_ = rel.gens[rel.gens[0] == gen];
-                            facts.push_back(target * ngens + gen_);
+                            facts.push(target * ngens + gen_);
                         } else if (target_row.gnr == rel.mult - 1) {
                             // determined family
                             *target_row.lst = target;
                         }
                     }
                 }
-
-                std::sort(facts.begin(), facts.end(), std::greater<>());
             }
 
             for (int irel = 0; irel < nrels; irel++) {
