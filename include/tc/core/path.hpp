@@ -28,61 +28,27 @@ struct Path {
         return path.size();
     }
 
-    template<class C, class T, class E>
-    void walk(
-        C &res,
-        T start,
-        std::vector<E> gens,
-        std::function<T(const T &, const E &)> op
-    ) const {
-        size_t s = size();
-        res.reserve(s);
-        res.push_back(start);
-
-        for (int i = 1; i < s; ++i) {
-            auto &action = path[i];
-            auto &from = res.get(action.from_idx);
-            auto &val = gens[action.gen];
-            res.push_back(op(from, val));
-        }
-    }
-
-    template<class T, class E>
-    [[nodiscard]] std::vector<T> walk(
-        T start,
-        std::vector<E> gens,
-        std::function<T(const T &, const E &)> op
-    ) const {
+    template<class T, class F>
+    std::vector<T> walk(const T &start, const F &op) {
         std::vector<T> res;
-        res.reserve(size());
+        res.reserve(path.size());
         res.push_back(start);
 
-        for (int i = 1; i < size(); ++i) {
+        for (size_t i = 1; i < path.size(); ++i) {
             auto &action = path[i];
             auto &from = res[action.from_idx];
-            auto &val = gens[action.gen];
-            res.push_back(op(from, val));
+            auto &gen = action.gen;
+
+            res.push_back(op(from, gen));
         }
 
         return res;
     }
 
-    template<class T>
-    [[nodiscard]] std::vector<T> walk(
-        T start,
-        std::function<T(const T &, const int &)> op
-    ) const {
-        std::vector<T> res;
-        res.reserve(size());
-        res.push_back(start);
-
-        for (int i = 1; i < size(); ++i) {
-            auto &action = path[i];
-            auto &from = res[action.from_idx];
-            auto &val = action.gen;
-            res[i] = op(from, val);
-        }
-
-        return res;
+    template<class T, class E, class F>
+    std::vector<T> walk(const T &start, const E &gens, const F &op) {
+        return walk(start, [&](const T &from, const int gen) {
+            return op(from, gens[gen]);
+        });
     }
 };

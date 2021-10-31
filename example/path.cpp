@@ -7,14 +7,12 @@ int main() {
     auto cube = tc::group::B(3);
     auto vars = cube.solve();
 
-    auto words = vars.path.walk<std::string, std::string>(
-        "",
-        {"a", "b", "c"},
-        [](auto a, auto b) { return a + b; }
-    );
+    std::string start;
+    std::vector<std::string> names = {"a", "b", "c"};
+    auto words = vars.path.walk(start, names, std::plus<>());
 
-    for (const auto &word : words) {
-        std::cout << word << std::endl;
+    for (const auto &word: words) {
+        std::cout << (word.empty() ? "-" : word) << std::endl;
     }
 
     return 0;
