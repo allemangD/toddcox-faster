@@ -1,10 +1,6 @@
-#include "tc/core.hpp"
+#pragma once
 
-#include <algorithm>
-#include <memory>
-#include <queue>
-
-namespace tc {
+namespace {
     struct Row {
         int gnr;
         std::shared_ptr<int> lst;
@@ -40,7 +36,9 @@ namespace tc {
         }
         return deps;
     }
+}
 
+namespace tc {
     Cosets Group::solve(const std::vector<int> &sub_gens) const {
         Cosets cosets(ngens);
         cosets.add_row();

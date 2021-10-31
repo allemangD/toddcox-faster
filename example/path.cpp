@@ -1,6 +1,6 @@
+#include "tc/core.hpp"
 #include "tc/groups.hpp"
 
-#include <ctime>
 #include <iostream>
 
 int main() {
