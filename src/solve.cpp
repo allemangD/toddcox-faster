@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <queue>
 
 namespace tc {
     struct Row {
@@ -28,12 +29,17 @@ namespace tc {
             // std::vector already does block allocation.
             rows.resize(rows.size() + nrels);
         }
-
-        void del_rows_to(size_t coset) {
-            /// strictly refers to freeing pre-allocated blocks of for *gnrs and **lst_ptrs.
-            /// actual `rows` is unchanged.
-        }
     };
+
+    std::vector<std::vector<int>> dependency_map(int ngens, const std::vector<Rel> &rels) {
+        std::vector<std::vector<int>> deps(ngens);
+        for (int irel = 0; irel < rels.size(); ++irel) {
+            const Rel& rel = rels[irel];
+            deps[rel.gens[0]].push_back(irel);
+            deps[rel.gens[1]].push_back(irel);
+        }
+        return deps;
+    }
 
     Cosets Group::solve(const std::vector<int> &sub_gens) const {
         Cosets cosets(ngens);
@@ -48,18 +54,10 @@ namespace tc {
                 cosets.put(0, g, 0);
         }
 
-
         const auto &rels = get_rels(); // todo move to Group member
         const auto nrels = rels.size();
 
-        // todo encapsulate
-        std::vector<std::vector<int>> gen_map(ngens);
-        int rel_idx = 0;
-        for (Rel m: rels) {
-            gen_map[m.gens[0]].push_back(rel_idx);
-            gen_map[m.gens[1]].push_back(rel_idx);
-            rel_idx++;
-        }
+        auto deps = dependency_map(ngens, rels);
 
         std::shared_ptr<int> null_lst_ptr = std::make_shared<int>();
 
@@ -79,31 +77,23 @@ namespace tc {
             }
         }
 
-        int idx = 0;
-        int coset, gen, target, fact_idx, lst, gen_;
-        while (true) {
-            while (idx < cosets.data.size() and cosets.get(idx) >= 0)
-                idx++;
+        for (int idx = 0; idx < cosets.data.size(); idx++) {
+            if (cosets.get(idx) >= 0) continue;
 
-            if (idx == cosets.data.size()) {
-                tables.del_rows_to(idx / ngens);
-                break;
-            }
-
-            target = cosets.size();
+            int target = cosets.size();
             cosets.add_row();
             tables.add_row();
 
             std::vector<int> facts;
             facts.push_back(idx);
 
-            coset = idx / ngens;
-            gen = idx % ngens;
-
-            tables.del_rows_to(coset);
+            // todo nothing before the current coset will be used.
+            //  delete all table rows using old cosets to free memory early.
+            //  probably some unrolled linked list would be good; just drop
+            //  old blocks.
 
             while (!facts.empty()) {
-                fact_idx = facts.back();
+                int fact_idx = facts.back();
                 facts.pop_back();
 
                 if (cosets.get(fact_idx) != -1)
@@ -111,18 +101,19 @@ namespace tc {
 
                 cosets.put(fact_idx, target);
 
-                coset = fact_idx / ngens;
-                gen = fact_idx % ngens;
+                int coset = fact_idx / ngens;
+                int gen = fact_idx % ngens;
 
                 if (target == coset) {
-                    for (int irel: gen_map[gen]) {
+                    for (int irel: deps[gen]) {
                         Row &target_row = tables(irel, target);
-                        if (target_row.lst == nullptr)
+                        if (target_row.lst == nullptr){
                             target_row.gnr = -1;
+                        }
                     }
                 }
 
-                for (int irel: gen_map[gen]) {
+                for (int irel: deps[gen]) {
                     Row &target_row = tables(irel, target);
                     Row &coset_row = tables(irel, coset);
 
@@ -136,13 +127,16 @@ namespace tc {
                         }
 
                         if (target_row.gnr == rel.mult) {
-                            lst = *target_row.lst;
-                            gen_ = rel.gens[rel.gens[0] == gen];
+                            // forward learn
+                            int lst = *target_row.lst;
+                            int gen_ = rel.gens[rel.gens[0] == gen];
                             facts.push_back(lst * ngens + gen_);
                         } else if (target_row.gnr == -rel.mult) {
-                            gen_ = rel.gens[rel.gens[0] == gen];
+                            // stationary learn
+                            int gen_ = rel.gens[rel.gens[0] == gen];
                             facts.push_back(target * ngens + gen_);
                         } else if (target_row.gnr == rel.mult - 1) {
+                            // determined family
                             *target_row.lst = target;
                         }
                     }
