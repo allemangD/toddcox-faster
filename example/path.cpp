@@ -5,7 +5,7 @@
 
 int main() {
     auto cube = tc::group::B(3);
-    auto vars = cube.solve();
+    auto vars = tc::solve(cube);
 
     std::string start;
     std::vector<std::string> names = {"a", "b", "c"};

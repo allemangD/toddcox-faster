@@ -8,7 +8,7 @@
 template<class G>
 void test(const G &group) {
     auto s = std::clock();
-    auto cosets = group.solve({0});
+    auto cosets = tc::solve(group, {0});
     auto e = std::clock();
 
     double diff = (double) (e - s) / CLOCKS_PER_SEC;

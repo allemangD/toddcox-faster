@@ -39,23 +39,23 @@ namespace {
 }
 
 namespace tc {
-    Cosets Group::solve(const std::vector<int> &sub_gens) const {
-        Cosets cosets(ngens);
+    Cosets solve(const Group &g, const std::vector<int> &sub_gens = {}) {
+        Cosets cosets(g.ngens);
         cosets.add_row();
 
-        if (ngens == 0) {
+        if (g.ngens == 0) {
             return cosets;
         }
 
-        for (int g: sub_gens) {
-            if (g < ngens)
-                cosets.put(0, g, 0);
+        for (int gen: sub_gens) {
+            if (gen < g.ngens)
+                cosets.put(0, gen, 0);
         }
 
-        const auto &rels = get_rels(); // todo move to Group member
+        const auto &rels = g.get_rels(); // todo move to Group member
         const auto nrels = rels.size();
 
-        auto deps = dependency_map(ngens, rels);
+        auto deps = dependency_map(g.ngens, rels);
 
         std::shared_ptr<int> null_lst_ptr = std::make_shared<int>();
 
@@ -99,8 +99,8 @@ namespace tc {
 
                 cosets.put(fact_idx, target);
 
-                int coset = fact_idx / ngens;
-                int gen = fact_idx % ngens;
+                int coset = fact_idx / g.ngens;
+                int gen = fact_idx % g.ngens;
 
                 if (target == coset) {
                     for (int irel: deps[gen]) {
@@ -128,11 +128,11 @@ namespace tc {
                             // forward learn
                             int lst = *target_row.lst;
                             int gen_ = rel.gens[rel.gens[0] == gen];
-                            facts.push(lst * ngens + gen_);
+                            facts.push(lst * g.ngens + gen_);
                         } else if (target_row.gnr == -rel.mult) {
                             // stationary learn
                             int gen_ = rel.gens[rel.gens[0] == gen];
-                            facts.push(target * ngens + gen_);
+                            facts.push(target * g.ngens + gen_);
                         } else if (target_row.gnr == rel.mult - 1) {
                             // determined family
                             *target_row.lst = target;
