@@ -15,7 +15,7 @@ void test(const G &group) {
     int order = cosets.order();
 
     std::cout
-        << std::setw(7) << group.name() << ", "
+        << std::setw(7) << group.name << ", "
         << std::setw(7) << order << ", "
         << std::fixed << std::setprecision(6) << diff << "s"
         << std::endl;

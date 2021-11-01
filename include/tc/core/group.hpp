@@ -10,81 +10,59 @@
 #include <Eigen/Eigen>
 #include <iostream>
 
+namespace {
+    template<class T>
+    std::string stringify(const T &vec) {
+        std::stringstream ss;
+        ss << "[" << vec << "]";
+        return ss.str();
+    }
+}
+
 namespace tc {
+    /// A Schlafli Matrix
     template<unsigned int Rank>
-    struct Group;
-
-    template<unsigned int Rank, unsigned int PRank>
-    struct SubGroup;
-
-    template<unsigned int Rank>
-    class Group {
+    class Group : public Eigen::Matrix<unsigned int, Rank, Rank> {
     public:
-        using Matrix = Eigen::Matrix<unsigned int, Rank, Rank>;
+        using Base = Eigen::Matrix<unsigned int, Rank, Rank>;
 
-    private:
-    public:
-        std::string _name;
-        Matrix _data;
-        Eigen::SelfAdjointView<Matrix, Eigen::Upper> _mults;
+        std::string name;
 
-    public:
-        Group(const Group<Rank> &g) :
-            _name(g._name),
-            _data(g._data),
-            _mults(_data) {
-        }
-
-        Group(Group &&g) noexcept:
-            _name(std::move(g._name)),
-            _data(std::move(g._data)),
-            _mults(_data) {
-        }
-
-        explicit Group(std::string name = "G") :
-            _name(std::move(name)),
-            _data(),
-            _mults(_data) {
-            _data.fill(2);
-        }
-
-        unsigned int rank() const {
-            return _data.rows();
-        }
-
-        std::string name() const {
-            return _name;
-        }
-
-        typename Matrix::Scalar &operator()(int a, int b) {
-            return _mults(a, b);
-        }
-
-        typename Matrix::Scalar operator()(int a, int b) const {
-            return _mults(a, b);
-        }
+        using Base::Base;
     };
+
+    template<unsigned int Rank>
+    using Symbol = Eigen::Vector<unsigned int, Rank>;
+
+    template<unsigned int Rank>
+    Group<Rank> schlafli(const Symbol<Rank - 1> &mults, const std::string &name) {
+        Group<Rank> res;
+        res.name = name;
+
+        res.fill(2);
+        res.topRightCorner(Rank - 1, Rank - 1).diagonal() << mults;
+        res.bottomLeftCorner(Rank - 1, Rank - 1).diagonal() << mults;
+
+        return res;
+    }
+
+    template<unsigned int Rank>
+    Group<Rank> schlafli(const Symbol<Rank - 1> &mults) {
+        return schlafli<Rank>(mults, stringify(mults));
+    }
 
     template<unsigned int GR, unsigned int HR>
     Group<GR + HR> product(const Group<GR> &g, const Group<HR> &h) {
-        std::stringstream ss;
-        ss << g.name << "*" << h.name;
+        Group<GR + HR> res;
+        res.name = g.name + "*" + h.name;
 
-        Group<GR + HR> res(ss.str());
+        res.fill(2);
 
         int off = 0;
-        for (int i = 0; i < GR; ++i) {
-            for (int j = i; j < GR; ++j) {
-                res(i + off, j + off) = g(i, j);
-            }
-        }
+        res.block(off, off, GR, GR) << g.array() + off;
         off += GR;
 
-        for (int i = 0; i < HR; ++i) {
-            for (int j = i; j < HR; ++j) {
-                res(i + off, j + off) = h(i, j);
-            }
-        }
+        res.block(off, off, HR, HR) << h.array() + off;
         off += HR;
 
         return res;
@@ -92,19 +70,14 @@ namespace tc {
 
     template<unsigned int GR, unsigned int P>
     Group<GR * P> power(const Group<GR> &g) {
-        std::stringstream ss;
-        ss << g.name << "^" << P;
+        Group<GR * P> res;
+        res.name = g.name + "^" + P;
 
-        Group<GR * P> res(ss.str());
+        res.fill(2);
 
         for (int k = 0; k < P; ++k) {
             int off = k * GR;
-
-            for (int i = 0; i < GR; ++i) {
-                for (int j = i; j < GR; ++j) {
-                    res(i + off, j + off) = g(i, j);
-                }
-            }
+            res.block(off, off, GR, GR) << g.array() + off;
         }
 
         return res;
