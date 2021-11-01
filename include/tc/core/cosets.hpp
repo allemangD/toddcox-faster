@@ -29,19 +29,8 @@ struct Cosets {
         }
     }
 
-    void put(int idx, int target) {
-        // todo remove
-        int coset = idx / ngens;
-        int gen = idx % ngens;
-        put(coset, gen, target);
-    }
-
     [[nodiscard]] int get(int coset, int gen) const {
         return data[coset * ngens + gen];
-    }
-
-    [[nodiscard]] int get(int idx) const {
-        return data[idx];
     }
 
     [[nodiscard]] size_t size() const {
