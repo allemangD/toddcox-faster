@@ -4,39 +4,96 @@
 #include <vector>
 
 namespace tc {
-    struct Cosets {
-        int ngens;
+    template<unsigned int Rank>
+    class Path;
+
+    template<unsigned int Rank>
+    class Cosets {
+    private:
         std::vector<int> data;
-        Path path;
 
-        Cosets(const Cosets &) = default;
+    public:
+        Cosets(const Cosets<Rank> &) = default;
 
-        explicit Cosets(int ngens)
-            : ngens(ngens) {
-        }
+        Cosets() = default;
 
         void add_row() {
-            data.resize(data.size() + ngens, -1);
-            path.add_row();
+            data.resize(data.size() + Rank, -1);
         }
 
         void put(int coset, int gen, int target) {
-            data[coset * ngens + gen] = target;
-            data[target * ngens + gen] = coset;
-
-            if (path.get(target).from_idx == -1) {
-                path.put(coset, gen, target);
-            }
+            data[coset * Rank + gen] = target;
+            data[target * Rank + gen] = coset;
         }
 
         [[nodiscard]] int get(int coset, int gen) const {
-            return data[coset * ngens + gen];
+            return data[coset * Rank + gen];
         }
 
-        [[nodiscard]] size_t size() const {
-            return path.size();
+        [[nodiscard]] size_t order() const {
+            return data.size() / Rank;
+        }
+
+        Path<Rank> path() const;
+    };
+
+    template<unsigned int Rank>
+    class Path {
+    private:
+        friend class Cosets<Rank>;
+
+        std::vector<unsigned int> source;
+        std::vector<unsigned int> gen;
+        size_t _order;
+
+        explicit Path(size_t order) : _order(order), source(order), gen(order) {}
+
+    public:
+        size_t order() const {
+            return _order;
+        }
+
+        template<class T, class F>
+        std::vector<T> walk(const T &start, const F &op) {
+            std::vector<T> res;
+            res.reserve(order());
+            res.push_back(start);
+
+            for (size_t i = 1; i < order(); ++i) {
+                auto val = op(res[source[i]], gen[i]);
+                res.push_back(val);
+            }
+
+            return res;
+        }
+
+        template<class T, class E, class F>
+        std::vector<T> walk(const T &start, const E &gens, const F &op) {
+            return walk(start, [&](const T &s, const int g) {
+                return op(s, gens[g]);
+            });
         }
     };
+
+    template<unsigned int Rank>
+    Path<Rank> Cosets<Rank>::path() const {
+        Path<Rank> res(order());
+        std::vector<bool> set(order());
+
+        for (int coset = 0; coset < order(); ++coset) {
+            for (int gen = 0; gen < Rank; ++gen) {
+                int target = get(coset, gen);
+
+                if (!set[target]) {
+                    res.source[target] = coset;
+                    res.gen[target] = gen;
+                    set[target] = true;
+                }
+            }
+        }
+
+        return res;
+    }
 }
 
 namespace {
@@ -119,7 +176,7 @@ namespace {
             }
         }
 
-        void initialize(int target, const tc::Cosets &cosets) {
+        void initialize(int target, const tc::Cosets<Rank> &cosets) {
             for (auto &table: tables) {
                 const Rel &rel = table->rel;
                 Row &row = table->rows[target];
@@ -141,7 +198,7 @@ namespace {
             delete null_lst_ptr;
         }
 
-        void learn(int coset, int gen, int target, const tc::Cosets &cosets, std::priority_queue<int> &facts) {
+        void learn(int coset, int gen, int target, const tc::Cosets<Rank> &cosets, std::priority_queue<int> &facts) {
             if (target == coset) {
                 for (auto &table: deps[gen]) {
                     Row &target_row = table->rows[target];
@@ -186,8 +243,8 @@ namespace {
 
 namespace tc {
     template<unsigned int Rank>
-    tc::Cosets solve(const Group <Rank> &g, const std::vector<int> &sub_gens = {}) {
-        tc::Cosets cosets(Rank);
+    tc::Cosets<Rank> solve(const Group <Rank> &g, const std::vector<int> &sub_gens = {}) {
+        tc::Cosets<Rank> cosets;
         cosets.add_row();
 
         if (Rank == 0) {
@@ -205,38 +262,38 @@ namespace tc {
 
         std::priority_queue<int> facts;
 
-        for (int idx = 0; idx < cosets.data.size(); idx++) {
-            int coset = idx / Rank;
-            int gen = idx % Rank;
-            if (cosets.get(coset, gen) >= 0) continue;
+        for (int coset = 0; coset < cosets.order(); coset++) {
+            for (int gen = 0; gen < Rank; ++gen) {
+                if (cosets.get(coset, gen) >= 0) continue; // todo vector<bool> set
 
-            int target = cosets.size();
-            cosets.add_row();
-            tables.add_row();
+                int target = cosets.order();
+                cosets.add_row();
+                tables.add_row();
 
-            facts.push(idx);
+                facts.push(coset * Rank + gen);
 
-            // todo nothing before the current coset will be used.
-            //  delete all table rows using old cosets to free memory early.
-            //  probably some unrolled linked list would be good; just drop
-            //  old blocks.
+                // todo nothing before the current coset will be used.
+                //  delete all table rows using old cosets to free memory early.
+                //  probably some unrolled linked list would be good; just drop
+                //  old blocks.
 
-            while (!facts.empty()) {
-                int fact_idx = facts.top();
-                facts.pop();
+                while (!facts.empty()) {
+                    int fact_idx = facts.top();
+                    facts.pop();
 
-                int coset_ = fact_idx / Rank;
-                int gen_ = fact_idx % Rank;
+                    int coset_ = fact_idx / Rank;
+                    int gen_ = fact_idx % Rank;
 
-                if (cosets.get(coset_, gen_) != -1)
-                    continue;
+                    if (cosets.get(coset_, gen_) != -1)
+                        continue;
 
-                cosets.put(coset_, gen_, target);
+                    cosets.put(coset_, gen_, target);
 
-                tables.learn(coset_, gen_, target, cosets, facts);
+                    tables.learn(coset_, gen_, target, cosets, facts);
+                }
+
+                tables.initialize(target, cosets);
             }
-
-            tables.initialize(target, cosets);
         }
 
         return cosets;

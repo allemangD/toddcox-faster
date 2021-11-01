@@ -12,7 +12,7 @@ void test(const G &group) {
     auto e = std::clock();
 
     double diff = (double) (e - s) / CLOCKS_PER_SEC;
-    int order = cosets.size();
+    int order = cosets.order();
 
     std::cout
         << std::setw(7) << group.name() << ", "
