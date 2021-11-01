@@ -105,11 +105,13 @@ namespace {
     struct Table {
     private:
     public:
-        Rel rel;
+        int i, j, mult;
+
         std::vector<Row> rows;
 
     public:
-        explicit Table(const Rel &rel) : rel(rel) {
+        explicit Table(int i, int j, int mult) :
+            i(i), j(j), mult(mult) {
         }
     };
 
@@ -159,13 +161,13 @@ namespace {
 
     public:
         explicit Tables(const tc::Group<Rank> &group) {
-            const auto &rels = group.get_rels();
-            for (int i = 0; i < Rels; ++i) {
-                const auto &rel = rels[i];
-                auto table = std::make_shared<Table>(rel);
-                tables[i] = table;
-                deps[rel.gens[0]].push_back(table);
-                deps[rel.gens[1]].push_back(table);
+            for (int i = 0, irel = 0; i < Rank - 1; ++i) {
+                for (int j = i + 1; j < Rank; ++j, ++irel) {
+                    auto table = std::make_shared<Table>(i, j, group(i, j));
+                    tables[irel] = table;
+                    deps[i].push_back(table);
+                    deps[j].push_back(table);
+                }
             }
         }
 
@@ -178,12 +180,11 @@ namespace {
 
         void initialize(int target, const tc::Cosets<Rank> &cosets) {
             for (auto &table: tables) {
-                const Rel &rel = table->rel;
                 Row &row = table->rows[target];
 
                 if (row.lst == nullptr) {
-                    if (cosets.get(target, rel.gens[0]) != target and
-                        cosets.get(target, rel.gens[1]) != target) {
+                    if (cosets.get(target, table->i) != target and
+                        cosets.get(target, table->j) != target) {
                         row.lst = alloc();
                         row.gnr = 0;
                     } else {
@@ -212,7 +213,6 @@ namespace {
             for (auto &table: deps[gen]) {
                 Row &target_row = table->rows[target];
                 Row &coset_row = table->rows[coset];
-                const Rel &rel = table->rel;
 
                 if (target_row.lst == nullptr) {
                     target_row.lst = coset_row.lst;
@@ -222,16 +222,16 @@ namespace {
                         target_row.gnr -= 2;
                     }
 
-                    if (target_row.gnr == rel.mult) {
+                    if (target_row.gnr == table->mult) {
                         // forward learn
                         int lst = *target_row.lst;
-                        int gen_ = rel.gens[rel.gens[0] == gen];
+                        int gen_ = (table->i == gen) ? table->j : table->i;
                         facts.push(lst * Rank + gen_);
-                    } else if (target_row.gnr == -rel.mult) {
+                    } else if (target_row.gnr == -table->mult) {
                         // stationary learn
-                        int gen_ = rel.gens[rel.gens[0] == gen];
+                        int gen_ = (table->i == gen) ? table->j : table->i;
                         facts.push(target * Rank + gen_);
-                    } else if (target_row.gnr == rel.mult - 1) {
+                    } else if (target_row.gnr == table->mult - 1) {
                         // determined family
                         *target_row.lst = target;
                     }

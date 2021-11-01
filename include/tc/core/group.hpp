@@ -7,8 +7,6 @@
 #include <memory>
 #include <queue>
 
-#include "rel.hpp"
-
 #include <Eigen/Eigen>
 #include <iostream>
 
@@ -65,16 +63,6 @@ namespace tc {
         typename Matrix::Scalar operator()(int a, int b) const {
             return _mults(a, b);
         }
-
-        [[nodiscard]] std::vector<Rel> get_rels() const {
-            std::vector<Rel> res;
-            for (int i = 0; i < Rank - 1; ++i) {
-                for (int j = i + 1; j < Rank; ++j) {
-                    res.emplace_back(i, j, _mults(i, j));
-                }
-            }
-            return res;
-        }
     };
 
     template<unsigned int GR, unsigned int HR>
@@ -121,12 +109,4 @@ namespace tc {
 
         return res;
     }
-
-//    Group operator*(const Group &g, const Group &h) {
-//        return product(g, h);
-//    }
-//
-//    Group operator^(const Group &g, int p) {
-//        return power(g, p);
-//    }
 }
