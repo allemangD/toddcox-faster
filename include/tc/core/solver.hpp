@@ -42,7 +42,7 @@ namespace tc {
 namespace {
     struct Row {
         int gnr;
-        std::shared_ptr<int> lst;
+        int *lst;
     };
 
     struct Table {
@@ -56,13 +56,46 @@ namespace {
         }
     };
 
+    template<class T, size_t BlockSize = 4096>
+    class BlockAllocator {
+        /// 4096 seems to be the best (on my machine anway) from profiling.
+    private:
+        int block = 0;
+        int next = 0;
+        std::vector<T *> data = {build()};
+
+        T *build() {
+            T *blk = new T[BlockSize];
+            std::fill_n(blk, BlockSize, 0);
+            return blk;
+        }
+
+    public:
+        T *operator()() {
+            if (next >= BlockSize) {
+                data.push_back(build());
+                block++;
+                next = 0;
+            }
+
+            return &data[block][next++];
+        }
+
+        ~BlockAllocator() {
+            for (auto &blk: data) {
+                delete[] blk;
+            }
+        }
+    };
+
     template<unsigned int Rank>
     class Tables {
     public:
         static constexpr unsigned int Rels = Rank * (Rank + 1) / 2 - Rank;
 
     private:
-        std::shared_ptr<int> null_lst_ptr = std::make_shared<int>();
+        int *null_lst_ptr = new int;
+        BlockAllocator<int> alloc;
 
         std::array<std::shared_ptr<Table>, Rels> tables;
         std::array<std::vector<std::shared_ptr<Table>>, Rank> deps;
@@ -94,7 +127,7 @@ namespace {
                 if (row.lst == nullptr) {
                     if (cosets.get(target, rel.gens[0]) != target and
                         cosets.get(target, rel.gens[1]) != target) {
-                        row.lst = std::make_shared<int>();
+                        row.lst = alloc();
                         row.gnr = 0;
                     } else {
                         row.lst = null_lst_ptr;
@@ -102,6 +135,10 @@ namespace {
                     }
                 }
             }
+        }
+
+        ~Tables() {
+            delete null_lst_ptr;
         }
 
         void learn(int coset, int gen, int target, const tc::Cosets &cosets, std::priority_queue<int> &facts) {
