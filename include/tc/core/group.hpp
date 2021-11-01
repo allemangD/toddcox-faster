@@ -10,77 +10,61 @@
 #include "rel.hpp"
 #include "cosets.hpp"
 
+#include <Eigen/Eigen>
+#include <iostream>
+
 namespace tc {
     struct Group;
     struct SubGroup;
 
     struct Group {
-        int ngens;
-        std::vector<std::vector<int>> _mults;
-        std::string name;
+        using Matrix = Eigen::MatrixXi;
 
-        Group(const Group &) = default;
+        int ngens;
+        std::string name;
+        Matrix _data;
+        Eigen::SelfAdjointView<Matrix, Eigen::Upper> _mults;
+
+        Group(const Group &g)
+            : ngens(g.ngens),
+            name(g.name),
+            _data(g._data),
+            _mults(_data) {
+        }
+
+        Group(Group &&g) noexcept
+            : ngens(g.ngens),
+            name(std::move(g.name)),
+            _data(std::move(g._data)),
+            _mults(_data) {
+        }
 
         explicit Group(
             int ngens,
-            const std::vector<Rel> &rels = {},
             std::string name = "G"
-        ) : ngens(ngens), name(std::move(name)) {
-            _mults.resize(ngens);
-
-            for (auto &mult: _mults) {
-                mult.resize(ngens, 2);
-            }
-
-            for (const auto &rel: rels) {
-                set(rel);
-            }
+        ) : ngens(ngens),
+            name(std::move(name)),
+            _data(ngens, ngens),
+            _mults(_data) {
+            _data.fill(2);
         }
 
-        void set(const Rel &r) {
-            _mults[r.gens[0]][r.gens[1]] = r.mult;
-            _mults[r.gens[1]][r.gens[0]] = r.mult;
+        Matrix::Scalar &operator()(int a, int b) {
+            return _mults(a, b);
         }
 
-        [[nodiscard]] int get(int a, int b) const {
-            return _mults[a][b];
+        Matrix::Scalar operator()(int a, int b) const {
+            return _mults(a, b);
         }
 
         [[nodiscard]] std::vector<Rel> get_rels() const {
             std::vector<Rel> res;
             for (int i = 0; i < ngens - 1; ++i) {
                 for (int j = i + 1; j < ngens; ++j) {
-                    res.emplace_back(i, j, get(i, j));
+                    res.emplace_back(i, j, operator()(i, j));
                 }
             }
             return res;
-        }
-
-        [[nodiscard]] Group product(const Group &other) const {
-            std::stringstream ss;
-            ss << name << "*" << other.name;
-
-            Group g(ngens + other.ngens, get_rels(), ss.str());
-
-            for (const auto &rel: other.get_rels()) {
-                g.set(rel.shift(ngens));
-            }
-
-            return g;
-        }
-
-        [[nodiscard]] Group power(int p) const {
-            std::stringstream ss;
-            ss << name << "^" << p;
-
-            Group g(ngens * p, {}, ss.str());
-            for (const auto &rel: get_rels()) {
-                for (int off = 0; off < g.ngens; off += ngens) {
-                    g.set(rel.shift(off));
-                }
-            }
-
-            return g;
         }
 
         [[nodiscard]] SubGroup subgroup(
@@ -103,8 +87,8 @@ namespace tc {
 
             for (size_t i = 0; i < gen_map.size(); ++i) {
                 for (size_t j = 0; j < gen_map.size(); ++j) {
-                    int mult = parent.get(gen_map[i], gen_map[j]);
-                    set(Rel(i, j, mult));
+                    int mult = parent(gen_map[i], gen_map[j]);
+                    operator()(i, j) = mult;
                 }
             }
         }
@@ -114,12 +98,54 @@ namespace tc {
         return SubGroup(*this, gens);
     }
 
+    Group product(const Group &g, const Group &h) {
+        std::stringstream ss;
+        ss << g.name << "*" << h.name;
+
+        Group res(g.ngens + h.ngens, ss.str());
+
+        int off = 0;
+
+        for (int i = 0; i < g.ngens; ++i) {
+            for (int j = i; j < g.ngens; ++j) {
+                res(i + off, j + off) = g(i, j);
+            }
+        }
+        off += g.ngens;
+
+        for (int i = 0; i < h.ngens; ++i) {
+            for (int j = i; j < h.ngens; ++j) {
+                res(i + off, j + off) = h(i, j);
+            }
+        }
+
+        return res;
+    }
+
+    Group power(const Group &g, int p) {
+        std::stringstream ss;
+        ss << g.name << "^" << p;
+
+        Group res(g.ngens * p, ss.str());
+
+        for (int i = 0; i < g.ngens; ++i) {
+            for (int j = i; j < g.ngens; ++j) {
+                for (int k = 0; k < p; ++k) {
+                    int off = k * g.ngens;
+                    res(i + off, j + off) = g(i, j);
+                }
+            }
+        }
+
+        return res;
+    }
+
     Group operator*(const Group &g, const Group &h) {
-        return g.product(h);
+        return product(g, h);
     }
 
     Group operator^(const Group &g, int p) {
-        return g.power(p);
+        return power(g, p);
     }
 }
 

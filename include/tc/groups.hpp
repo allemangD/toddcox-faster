@@ -10,10 +10,10 @@ namespace tc {
     Group schlafli(const std::vector<int> &mults, const std::string &name) {
         int ngens = (int) mults.size() + 1;
 
-        Group g(ngens, {}, name);
+        Group g(ngens, name);
 
         for (int i = 0; i < (int) mults.size(); i++) {
-            g.set(Rel(i, i + 1, mults[i]));
+            g(i, i + 1) = mults[i];
         }
 
         return g;
@@ -46,7 +46,7 @@ namespace tc {
             ss << "A(" << dim << ")";
 
             if (dim == 0)
-                return Group(0, {}, ss.str());
+                return Group(0, ss.str());
 
             const std::vector<int> &mults = std::vector<int>(dim - 1, 3);
 
@@ -77,7 +77,7 @@ namespace tc {
             mults[dim - 2] = 2;
 
             Group g = schlafli(mults, ss.str());
-            g.set(Rel(1, dim - 1, 3));
+            g(1, dim - 1) = 3;
 
             return g;
         }
@@ -93,7 +93,7 @@ namespace tc {
             mults[dim - 2] = 2;
 
             Group g = schlafli(mults, ss.str());
-            g.set(Rel(2, dim - 1, 3));
+            g(2, dim - 1) = 3;
 
             return g;
         }
