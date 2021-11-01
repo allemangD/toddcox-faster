@@ -1,13 +1,13 @@
 #pragma once
 
-#include "core.hpp"
+#include "group.hpp"
 
 namespace tc::group {
     /**
      * Universal Coxeter Group
      */
     template<unsigned int Rank>
-    Group <Rank> U() {
+    Group<Rank> U() {
         std::stringstream ss;
         ss << "U(" << Rank << ")";
 
@@ -21,7 +21,7 @@ namespace tc::group {
      * Simplex
      */
     template<unsigned int Rank>
-    Group <Rank> A() {
+    Group<Rank> A() {
         std::stringstream ss;
         ss << "A(" << Rank << ")";
 
@@ -31,7 +31,7 @@ namespace tc::group {
             return res;
         }
 
-        std::array<unsigned int, Rank - 1> mults;
+        tc::Symbol<Rank - 1> mults;
         mults.fill(3);
 
         return schlafli<Rank>(mults, ss.str());
@@ -41,7 +41,7 @@ namespace tc::group {
      * Cube, Orthoplex
      */
     template<unsigned int Rank>
-    Group <Rank> B() {
+    Group<Rank> B() {
         std::stringstream ss;
         ss << "B(" << Rank << ")";
 
@@ -56,7 +56,7 @@ namespace tc::group {
      * Demicube, Orthoplex
      */
     template<unsigned int Rank>
-    Group <Rank> D() {
+    Group<Rank> D() {
         std::stringstream ss;
         ss << "D(" << Rank << ")";
 
@@ -75,7 +75,7 @@ namespace tc::group {
      * E groups
      */
     template<unsigned int Rank>
-    Group <Rank> E() {
+    Group<Rank> E() {
         std::stringstream ss;
         ss << "E(" << Rank << ")";
 
@@ -108,7 +108,7 @@ namespace tc::group {
      * Icosahedron
      */
     template<unsigned int Rank>
-    Group <Rank> H() {
+    Group<Rank> H() {
         std::stringstream ss;
         ss << "H(" << Rank << ")";
 

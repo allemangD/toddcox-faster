@@ -1,9 +1,9 @@
-#include "tc/core.hpp"
-#include "tc/groups.hpp"
-
 #include <ctime>
 #include <iostream>
 #include <iomanip>
+
+#include <tc/solver.hpp>
+#include <tc/groups.hpp>
 
 template<class G>
 void test(const G &group) {

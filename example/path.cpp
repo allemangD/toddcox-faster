@@ -1,7 +1,9 @@
-#include "tc/core.hpp"
-#include "tc/groups.hpp"
-
+#include <vector>
+#include <string>
 #include <iostream>
+
+#include <tc/solver.hpp>
+#include <tc/groups.hpp>
 
 int main() {
     auto cube = tc::group::B<3>();

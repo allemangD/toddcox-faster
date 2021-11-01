@@ -1,14 +1,9 @@
 #pragma once
 
-#include <vector>
 #include <string>
 #include <sstream>
-#include <algorithm>
-#include <memory>
-#include <queue>
 
 #include <Eigen/Eigen>
-#include <iostream>
 
 namespace {
     template<class T>
