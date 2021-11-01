@@ -8,126 +8,112 @@
 #include <queue>
 
 #include "rel.hpp"
-#include "cosets.hpp"
 
 #include <Eigen/Eigen>
 #include <iostream>
 
 namespace tc {
+    template<unsigned int Rank>
     struct Group;
+
+    template<unsigned int Rank, unsigned int PRank>
     struct SubGroup;
 
-    struct Group {
-        using Matrix = Eigen::MatrixXi;
+    template<unsigned int Rank>
+    class Group {
+    public:
+        using Matrix = Eigen::Matrix<unsigned int, Rank, Rank>;
 
-        int ngens;
-        std::string name;
+    private:
+    public:
+        std::string _name;
         Matrix _data;
         Eigen::SelfAdjointView<Matrix, Eigen::Upper> _mults;
 
-        Group(const Group &g)
-            : ngens(g.ngens),
-            name(g.name),
+    public:
+        Group(const Group<Rank> &g) :
+            _name(g._name),
             _data(g._data),
             _mults(_data) {
         }
 
-        Group(Group &&g) noexcept
-            : ngens(g.ngens),
-            name(std::move(g.name)),
+        Group(Group &&g) noexcept:
+            _name(std::move(g._name)),
             _data(std::move(g._data)),
             _mults(_data) {
         }
 
-        explicit Group(
-            int ngens,
-            std::string name = "G"
-        ) : ngens(ngens),
-            name(std::move(name)),
-            _data(ngens, ngens),
+        explicit Group(std::string name = "G") :
+            _name(std::move(name)),
+            _data(),
             _mults(_data) {
             _data.fill(2);
         }
 
-        Matrix::Scalar &operator()(int a, int b) {
+        unsigned int rank() const {
+            return _data.rows();
+        }
+
+        std::string name() const {
+            return _name;
+        }
+
+        typename Matrix::Scalar &operator()(int a, int b) {
             return _mults(a, b);
         }
 
-        Matrix::Scalar operator()(int a, int b) const {
+        typename Matrix::Scalar operator()(int a, int b) const {
             return _mults(a, b);
         }
 
         [[nodiscard]] std::vector<Rel> get_rels() const {
             std::vector<Rel> res;
-            for (int i = 0; i < ngens - 1; ++i) {
-                for (int j = i + 1; j < ngens; ++j) {
-                    res.emplace_back(i, j, operator()(i, j));
+            for (int i = 0; i < Rank - 1; ++i) {
+                for (int j = i + 1; j < Rank; ++j) {
+                    res.emplace_back(i, j, _mults(i, j));
                 }
             }
             return res;
         }
-
-        [[nodiscard]] SubGroup subgroup(
-            const std::vector<int> &gens
-        ) const;
     };
 
-    struct SubGroup : public Group {
-        std::vector<int> gen_map;
-        const Group &parent;
-
-        SubGroup(const Group &parent, std::vector<int> gen_map) : Group(gen_map.size()), parent(parent) {
-
-            std::sort(gen_map.begin(), gen_map.end());
-            this->gen_map = gen_map;
-
-            for (size_t i = 0; i < gen_map.size(); ++i) {
-                for (size_t j = 0; j < gen_map.size(); ++j) {
-                    int mult = parent(gen_map[i], gen_map[j]);
-                    operator()(i, j) = mult;
-                }
-            }
-        }
-    };
-
-    SubGroup Group::subgroup(const std::vector<int> &gens) const {
-        return SubGroup(*this, gens);
-    }
-
-    Group product(const Group &g, const Group &h) {
+    template<unsigned int GR, unsigned int HR>
+    Group<GR + HR> product(const Group<GR> &g, const Group<HR> &h) {
         std::stringstream ss;
         ss << g.name << "*" << h.name;
 
-        Group res(g.ngens + h.ngens, ss.str());
+        Group<GR + HR> res(ss.str());
 
         int off = 0;
-
-        for (int i = 0; i < g.ngens; ++i) {
-            for (int j = i; j < g.ngens; ++j) {
+        for (int i = 0; i < GR; ++i) {
+            for (int j = i; j < GR; ++j) {
                 res(i + off, j + off) = g(i, j);
             }
         }
-        off += g.ngens;
+        off += GR;
 
-        for (int i = 0; i < h.ngens; ++i) {
-            for (int j = i; j < h.ngens; ++j) {
+        for (int i = 0; i < HR; ++i) {
+            for (int j = i; j < HR; ++j) {
                 res(i + off, j + off) = h(i, j);
             }
         }
+        off += HR;
 
         return res;
     }
 
-    Group power(const Group &g, int p) {
+    template<unsigned int GR, unsigned int P>
+    Group<GR * P> power(const Group<GR> &g) {
         std::stringstream ss;
-        ss << g.name << "^" << p;
+        ss << g.name << "^" << P;
 
-        Group res(g.ngens * p, ss.str());
+        Group<GR * P> res(ss.str());
 
-        for (int i = 0; i < g.ngens; ++i) {
-            for (int j = i; j < g.ngens; ++j) {
-                for (int k = 0; k < p; ++k) {
-                    int off = k * g.ngens;
+        for (int k = 0; k < P; ++k) {
+            int off = k * GR;
+
+            for (int i = 0; i < GR; ++i) {
+                for (int j = i; j < GR; ++j) {
                     res(i + off, j + off) = g(i, j);
                 }
             }
@@ -136,11 +122,11 @@ namespace tc {
         return res;
     }
 
-    Group operator*(const Group &g, const Group &h) {
-        return product(g, h);
-    }
-
-    Group operator^(const Group &g, int p) {
-        return power(g, p);
-    }
+//    Group operator*(const Group &g, const Group &h) {
+//        return product(g, h);
+//    }
+//
+//    Group operator^(const Group &g, int p) {
+//        return power(g, p);
+//    }
 }
