@@ -15,3 +15,8 @@ target_include_directories(tc INTERFACE include)
 if (TC_BUILD_EXAMPLE)
     add_subdirectory(example)
 endif ()
+
+if (TC_BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(Testing)
+endif()

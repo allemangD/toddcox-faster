@@ -160,7 +160,7 @@ namespace tc {
      * Assumes that g is a coxeter group - that is, self-adjoint and the diagonal is 2.
      */
     template<unsigned int Rank>
-    tc::Cosets<Rank> solve(const Group <Rank> &group, const std::vector<int> &sub_gens = {}) {
+    tc::Cosets<Rank> solve(const Group <Rank> &group, const std::vector<unsigned int> &sub_gens = {}) {
         tc::Cosets<Rank> cosets;
         cosets.add_row();
 
@@ -168,7 +168,7 @@ namespace tc {
             return cosets;
         }
 
-        for (int gen: sub_gens) {
+        for (unsigned int gen: sub_gens) {
             if (gen < Rank)
                 cosets.put(0, gen, 0);
         }
