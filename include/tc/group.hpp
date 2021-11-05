@@ -15,7 +15,7 @@ namespace {
 }
 
 namespace tc {
-    /// A Schlafli Matrix
+    /// A Coxeter Matrix
     template<unsigned int Rank>
     class Group : public Eigen::Matrix<unsigned int, Rank, Rank> {
     public:
@@ -29,18 +29,25 @@ namespace tc {
     template<unsigned int Rank>
     using Symbol = Eigen::Vector<unsigned int, Rank>;
 
+    /**
+     * Create a named coxeter matrix from a simplified schlafli symbol
+     */
     template<unsigned int Rank>
     Group<Rank> schlafli(const Symbol<Rank - 1> &mults, const std::string &name) {
         Group<Rank> res;
         res.name = name;
 
         res.fill(2);
+        res.diagonal().fill(1);
         res.topRightCorner(Rank - 1, Rank - 1).diagonal() << mults;
         res.bottomLeftCorner(Rank - 1, Rank - 1).diagonal() << mults;
 
         return res;
     }
 
+    /**
+     * Create a coxeter matrix from a simplified schlafli symbol.
+     */
     template<unsigned int Rank>
     Group<Rank> schlafli(const Symbol<Rank - 1> &mults) {
         return schlafli<Rank>(mults, stringify(mults));
