@@ -12,8 +12,8 @@ target_link_libraries(tc INTERFACE eigen)
 
 target_include_directories(tc INTERFACE include)
 
-if (TC_BUILD_EXAMPLE)
-    add_subdirectory(example)
+if (TC_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif ()
 
 if (TC_BUILD_TESTING)
