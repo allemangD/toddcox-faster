@@ -22,17 +22,17 @@ void test(const G &group) {
 }
 
 int main() {
-    test(tc::group::H<2>());
-    test(tc::group::H<3>());
-    test(tc::group::H<4>());
+    test(tc::group::H(2));
+    test(tc::group::H(3));
+    test(tc::group::H(4));
     test(tc::group::T(100));
     test(tc::group::T(500));
     test(tc::group::T(1000));
-    test(tc::group::E<6>());
-    test(tc::group::E<7>());
-    test(tc::group::B<6>());
-    test(tc::group::B<7>());
-    test(tc::group::B<8>());
+    test(tc::group::E(6));
+    test(tc::group::E(7));
+    test(tc::group::B(6));
+    test(tc::group::B(7));
+    test(tc::group::B(8));
 
     return 0;
 }

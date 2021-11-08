@@ -9,30 +9,28 @@ int main(int argc, char **argv) {
 
     unsigned int order;
 
+    tc::Group group(0);
+
     if (name == "E6") {
-        auto group = tc::group::E<6>();
-        order = compute<6>(group, vgens);
+        group = tc::group::E(6);
     }
     if (name == "E7") {
-        auto group = tc::group::E<7>();
-        order = compute<7>(group, vgens);
+        group = tc::group::E(7);
     }
     if (name == "E8") {
-        auto group = tc::group::E<8>();
-        order = compute<8>(group, vgens);
+        group = tc::group::E(8);
     }
     if (name == "B6") {
-        auto group = tc::group::B<6>();
-        order = compute<6>(group, vgens);
+        group = tc::group::B(6);
     }
     if (name == "B7") {
-        auto group = tc::group::B<7>();
-        order = compute<7>(group, vgens);
+        group = tc::group::B(7);
     }
     if (name == "B8") {
-        auto group = tc::group::B<8>();
-        order = compute<8>(group, vgens);
+        group = tc::group::B(8);
     }
+
+    order = compute(group, vgens);
 
     std::cout << "Order: " << order << ":" << target << std::endl;
     return order != target;

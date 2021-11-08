@@ -21,11 +21,10 @@ std::vector<unsigned int> parse_vec(const std::string &part) {
     return res;
 }
 
-template<unsigned int N>
-int compute(
-    const tc::Group<N> &group,
+size_t compute(
+    const tc::Group &group,
     const std::vector<unsigned int> &vgens
 ) {
-    auto table = tc::solve<N>(group, vgens);
+    auto table = tc::solve(group, vgens);
     return table.order();
 }

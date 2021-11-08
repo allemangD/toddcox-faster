@@ -6,7 +6,7 @@
 #include <tc/groups.hpp>
 
 int main() {
-    auto cube = tc::group::B<3>();
+    auto cube = tc::group::B(3);
     auto vars = tc::solve(cube);
 
     std::string start;

@@ -16,38 +16,39 @@ namespace {
 }
 
 namespace tc {
-    template<unsigned int Rank>
-    using Symbol = Eigen::Vector<unsigned int, Rank>;
+    using Symbol = Eigen::Vector<unsigned int, Eigen::Dynamic>;
 
-    template<unsigned int Rank>
-    Symbol<Rank> iota() {
-        Symbol<Rank> res;
-        for (int i = 0; i < Rank; ++i) {
-            res(i) = i;
-        }
-        return res;
-    }
+    using MatrixXui = Eigen::Matrix<unsigned int, Eigen::Dynamic, Eigen::Dynamic>;
 
     /// A Coxeter Matrix
-    template<unsigned int Rank>
-    class Group : public Eigen::Matrix<unsigned int, Rank, Rank> {
+    class Group : public MatrixXui {
     public:
-        using Base = Eigen::Matrix<unsigned int, Rank, Rank>;
+        using Base = MatrixXui;
 
         std::string name = "G";
-        Symbol<Rank> gens = iota<Rank>();
+        Symbol gens;
 
-        using Base::Base;
+        explicit Group(size_t rank) : Base(rank, rank), gens(rank) {
+            for (Eigen::Index i = 0; i < rank; ++i) {
+                gens(i) = i;
+            }
+        }
+
+        [[nodiscard]] size_t rank() const {
+            return rows();
+        }
     };
 
-    template<unsigned int Rank, unsigned int SRank>
-    Group<SRank> subgroup(const Group<Rank> &group, Symbol<SRank> gens) {
-        Group<SRank> res;
+    Group subgroup(const Group &group, const Symbol &gens) {
+        size_t rank = group.size();
+        size_t srank = gens.size();
+
+        Group res(srank);
         res.name = group.name + ":" + stringify(gens);
         res.gens = gens;
 
-        for (int i = 0; i < SRank; ++i) {
-            for (int j = 0; j < SRank; ++j) {
+        for (Eigen::Index i = 0; i < srank; ++i) {
+            for (Eigen::Index j = 0; j < srank; ++j) {
                 res(i, j) = group(gens[i], gens[j]);
             }
         }
@@ -55,17 +56,17 @@ namespace tc {
         return res;
     }
 
-    template<unsigned int Rank, unsigned int SRank>
-    Symbol<Rank> inverse(Symbol<SRank> gens) {
-        Symbol<Rank> res;
+    Symbol inverse(size_t rank, const Symbol &gens) {
+        size_t srank = gens.size();
+        Symbol res(rank);
         res.fill(0);
-        for (int i = 0; i < SRank; ++i) {
+        for (int i = 0; i < srank; ++i) {
             res(gens(i)) = i;
         }
         return res;
     }
 
-    constexpr unsigned int Factorial(unsigned int n) {
+    unsigned int factorial(unsigned int n) {
         unsigned int res = 1;
         for (int i = 1; i <= n; ++i) {
             res *= i;
@@ -73,28 +74,28 @@ namespace tc {
         return res;
     }
 
-    constexpr unsigned int Choose(unsigned int n, unsigned int k) {
-        return Factorial(n) / Factorial(k) / Factorial(n - k);
+    unsigned int choose(unsigned int n, unsigned int k) {
+        return factorial(n) / factorial(k) / factorial(n - k);
     }
 
-    template<unsigned int Rank, unsigned int SRank>
-    using SubGroups = std::array<Group<SRank>, Choose(Rank, SRank)>;
+    using SubGroups = std::vector<Group>;
 
-    template<unsigned int Rank, unsigned int SRank>
-    SubGroups<Rank, SRank> subgroups(const Group<Rank> &group) {
-        std::vector<bool> mask(Rank, false);
-        std::fill_n(mask.begin(), SRank, true);
+    SubGroups subgroups(const Group &group, size_t srank) {
+        size_t rank = group.rank();
 
-        SubGroups<Rank, SRank> res;
+        std::vector<bool> mask(rank, false);
+        std::fill_n(mask.begin(), srank, true);
 
-        size_t i = 0;
-        Symbol<SRank> row;
+        SubGroups res;
+        res.reserve(choose(rank, srank));
+
+        Symbol row(srank);
         do {
-            for (int j = 0, k = 0; j < Rank; ++j) {
+            for (int j = 0, k = 0; j < rank; ++j) {
                 if (mask[j])
                     row(k++) = j;
             }
-            res[i++] = subgroup<Rank, SRank>(group, row);
+            res.push_back(subgroup(group, row));
         } while (std::prev_permutation(mask.begin(), mask.end()));
 
         return res;
@@ -103,15 +104,16 @@ namespace tc {
     /**
      * Create a named coxeter matrix from a simplified schlafli symbol
      */
-    template<unsigned int Rank>
-    Group<Rank> schlafli(const Symbol<Rank - 1> &mults, const std::string &name) {
-        Group<Rank> res;
+    Group schlafli(const Symbol &mults, const std::string &name) {
+        size_t rank = mults.size() + 1;
+
+        Group res(rank);
         res.name = name;
 
         res.fill(2);
         res.diagonal().fill(1);
-        res.topRightCorner(Rank - 1, Rank - 1).diagonal() << mults;
-        res.bottomLeftCorner(Rank - 1, Rank - 1).diagonal() << mults;
+        res.topRightCorner(rank - 1, rank - 1).diagonal() << mults;
+        res.bottomLeftCorner(rank - 1, rank - 1).diagonal() << mults;
 
         return res;
     }
@@ -119,38 +121,36 @@ namespace tc {
     /**
      * Create a coxeter matrix from a simplified schlafli symbol.
      */
-    template<unsigned int Rank>
-    Group<Rank> schlafli(const Symbol<Rank - 1> &mults) {
-        return schlafli<Rank>(mults, stringify(mults));
+    Group schlafli(const Symbol &mults) {
+        return schlafli(mults, stringify(mults));
     }
 
-    template<unsigned int GR, unsigned int HR>
-    Group<GR + HR> product(const Group<GR> &g, const Group<HR> &h) {
-        Group<GR + HR> res;
+    Group product(const Group &g, const Group &h) {
+        Group res(g.rank() + h.rank());
         res.name = g.name + "*" + h.name;
 
         res.fill(2);
 
-        int off = 0;
-        res.block(off, off, GR, GR) << g.array() + off;
-        off += GR;
+        Eigen::Index off = 0;
+        res.block(off, off, g.rank(), g.rank()) << g.array() + off;
+        off += (Eigen::Index) g.rank();
 
-        res.block(off, off, HR, HR) << h.array() + off;
-        off += HR;
+        res.block(off, off, h.rank(), h.rank()) << h.array() + off;
+        off += (Eigen::Index) h.rank();
 
         return res;
     }
 
-    template<unsigned int GR, unsigned int P>
-    Group<GR * P> power(const Group<GR> &g) {
-        Group<GR * P> res;
-        res.name = g.name + "^" + P;
+    Group power(const Group &g, size_t p) {
+        Group res(g.rank() * p);
+
+        res.name = g.name + "^" + std::to_string(p);
 
         res.fill(2);
 
-        for (int k = 0; k < P; ++k) {
-            int off = k * GR;
-            res.block(off, off, GR, GR) << g.array() + off;
+        for (Eigen::Index k = 0; k < p; ++k) {
+            auto off = (Eigen::Index) g.rank() * k;
+            res.block(off, off, g.rank(), g.rank()) << g.array() + off;
         }
 
         return res;

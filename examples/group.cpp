@@ -4,20 +4,21 @@
 #include <tc/groups.hpp>
 
 int main() {
-    constexpr unsigned int Rank = 5;
-    constexpr unsigned int SRank = 3;
+    tc::Symbol symbol(4);
+    symbol << 5, 3, 2, 3;
+    tc::Group group = tc::schlafli(symbol);
+//    tc::Group group = tc::group::E(7);
 
-    tc::Group<Rank> group = tc::schlafli<Rank>({5, 3, 2, 3});
-//    tc::Group<Rank> group = tc::group::E<Rank>();
+    size_t srank = 3;
 
-    tc::SubGroups<Rank, SRank> subs = tc::subgroups<Rank, SRank>(group);
+    tc::SubGroups subs = tc::subgroups(group, srank);
 
     std::cout << "Group " << group.name << " (" << subs.size() << " subgroups)" << std::endl;
     std::cout << group << std::endl;
 
     for (const auto &sub: subs) {
-        for (int i = 0; i < SRank; ++i) {
-            for (int j = 0; j < SRank; ++j) {
+        for (int i = 0; i < srank; ++i) {
+            for (int j = 0; j < srank; ++j) {
                 auto sub_mult = sub(i, j);
                 auto src_mult = group(sub.gens(i), sub.gens(j));
 

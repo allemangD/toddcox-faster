@@ -20,7 +20,7 @@ namespace {
     public:
         int i, j, mult;
 
-        std::vector <Row> rows;
+        std::vector<Row> rows;
 
     public:
         explicit Table(int i, int j, int mult) :
@@ -60,29 +60,36 @@ namespace {
         }
     };
 
-    template<unsigned int Rank>
     class Tables {
-    public:
-        static constexpr unsigned int Rels = Rank * (Rank + 1) / 2 - Rank;
-
     private:
         int *null_lst_ptr = new int;
         BlockAllocator<int> alloc;
 
-        std::array <std::shared_ptr<Table>, Rels> tables;
-        std::array <std::vector<std::shared_ptr < Table>>, Rank>
-            deps;
+        std::vector<std::shared_ptr<Table>> tables;
+        std::vector<std::vector<std::shared_ptr<Table>>> deps;
+
+        size_t _rank;
+        size_t _rels;
 
     public:
-        explicit Tables(const tc::Group<Rank> &group) {
-            for (int i = 0, irel = 0; i < Rank - 1; ++i) {
-                for (int j = i + 1; j < Rank; ++j, ++irel) {
+        explicit Tables(const tc::Group &group) : _rank(group.rank()), _rels(rank() * (rank() + 1) / 2 - rank()) {
+            deps.resize(rank());
+            for (int i = 0; i < rank() - 1; ++i) {
+                for (int j = i + 1; j < rank(); ++j) {
                     auto table = std::make_shared<Table>(i, j, group(i, j));
-                    tables[irel] = table;
+                    tables.push_back(table);
                     deps[i].push_back(table);
                     deps[j].push_back(table);
                 }
             }
+        }
+
+        [[nodiscard]] size_t rank() const {
+            return _rank;
+        }
+
+        [[nodiscard]] size_t rels() const {
+            return _rels;
         }
 
         void add_row() {
@@ -92,7 +99,7 @@ namespace {
             }
         }
 
-        void initialize(int target, const tc::Cosets<Rank> &cosets) {
+        void initialize(int target, const tc::Cosets &cosets) {
             for (auto &table: tables) {
                 Row &row = table->rows[target];
 
@@ -113,7 +120,7 @@ namespace {
             delete null_lst_ptr;
         }
 
-        void learn(int coset, int gen, int target, const tc::Cosets<Rank> &cosets, std::priority_queue<int> &facts) {
+        void learn(int coset, int gen, int target, const tc::Cosets &cosets, std::priority_queue<size_t> &facts) {
             if (target == coset) {
                 for (auto &table: deps[gen]) {
                     Row &target_row = table->rows[target];
@@ -140,11 +147,11 @@ namespace {
                         // forward learn
                         int lst = *target_row.lst;
                         int gen_ = (table->i == gen) ? table->j : table->i;
-                        facts.push(lst * Rank + gen_);
+                        facts.push(lst * rank() + gen_);
                     } else if (target_row.gnr == -table->mult) {
                         // stationary learn
                         int gen_ = (table->i == gen) ? table->j : table->i;
-                        facts.push(target * Rank + gen_);
+                        facts.push(target * rank() + gen_);
                     } else if (target_row.gnr == table->mult - 1) {
                         // determined family
                         *target_row.lst = target;
@@ -159,35 +166,36 @@ namespace tc {
     /**
      * Assumes that g is a coxeter group - that is, self-adjoint and the diagonal is 2.
      */
-    template<unsigned int Rank>
-    tc::Cosets<Rank> solve(const Group <Rank> &group, const std::vector<unsigned int> &sub_gens = {}) {
-        tc::Cosets<Rank> cosets;
+    tc::Cosets solve(const Group &group, const std::vector<unsigned int> &sub_gens = {}) {
+        size_t rank = group.rank();
+
+        tc::Cosets cosets(rank);
         cosets.add_row();
 
-        if (Rank == 0) {
+        if (rank == 0) {
             return cosets;
         }
 
         for (unsigned int gen: sub_gens) {
-            if (gen < Rank)
+            if (gen < rank)
                 cosets.put(0, gen, 0);
         }
 
-        Tables<Rank> tables(group);
+        Tables tables(group);
         tables.add_row();
         tables.initialize(0, cosets);
 
-        std::priority_queue<int> facts;
+        std::priority_queue<size_t> facts;
 
         for (int coset = 0; coset < cosets.order(); coset++) {
-            for (int gen = 0; gen < Rank; ++gen) {
+            for (int gen = 0; gen < rank; ++gen) {
                 if (cosets.get(coset, gen) >= 0) continue; // todo vector<bool> set
 
                 int target = cosets.order();
                 cosets.add_row();
                 tables.add_row();
 
-                facts.push(coset * Rank + gen);
+                facts.push(coset * rank + gen);
 
                 // todo nothing before the current coset will be used.
                 //  delete all table rows using old cosets to free memory early.
@@ -198,8 +206,8 @@ namespace tc {
                     int fact_idx = facts.top();
                     facts.pop();
 
-                    int coset_ = fact_idx / Rank;
-                    int gen_ = fact_idx % Rank;
+                    int coset_ = fact_idx / rank;
+                    int gen_ = fact_idx % rank;
 
                     if (cosets.get(coset_, gen_) != -1)
                         continue;
