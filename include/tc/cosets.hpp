@@ -33,6 +33,7 @@ namespace tc {
         }
 
         [[nodiscard]] size_t order() const {
+            if (!_rank) return 0;
             return data.size() / _rank;
         }
 
@@ -60,7 +61,7 @@ namespace tc {
         }
 
         template<class T, class F>
-        std::vector<T> walk(const T &start, const F &op) {
+        std::vector<T> walk(const T &start, const F &op) const {
             std::vector<T> res;
             res.reserve(order());
             res.push_back(start);
@@ -74,7 +75,7 @@ namespace tc {
         }
 
         template<class T, class E, class F>
-        std::vector<T> walk(const T &start, const E &gens, const F &op) {
+        std::vector<T> walk(const T &start, const E &gens, const F &op) const {
             return walk(start, [&](const T &s, const int g) {
                 return op(s, gens[g]);
             });

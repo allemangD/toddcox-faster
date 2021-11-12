@@ -6,7 +6,7 @@
 
 #include <Eigen/Eigen>
 
-namespace {
+namespace tc {
     template<class T>
     std::string stringify(const T &vec) {
         std::stringstream ss;
@@ -56,16 +56,6 @@ namespace tc {
         return res;
     }
 
-    Symbol inverse(size_t rank, const Symbol &gens) {
-        size_t srank = gens.size();
-        Symbol res(rank);
-        res.fill(0);
-        for (int i = 0; i < srank; ++i) {
-            res(gens(i)) = i;
-        }
-        return res;
-    }
-
     unsigned int factorial(unsigned int n) {
         unsigned int res = 1;
         for (int i = 1; i <= n; ++i) {
@@ -99,6 +89,31 @@ namespace tc {
         } while (std::prev_permutation(mask.begin(), mask.end()));
 
         return res;
+    }
+
+    /**
+     * Determine which of g_gens are the correct names for sg_gens within the current context
+     */
+    Symbol recontext_gens(
+        size_t rank,
+        Symbol g_gens,
+        Symbol sg_gens
+    ) {
+        std::sort(g_gens.begin(),  g_gens.end());
+        std::sort(sg_gens.begin(),  sg_gens.end());
+
+        int inv_gen_map[rank];
+        for (int i = 0; i < g_gens.size(); ++i) {
+            inv_gen_map[g_gens[i]] = i;
+        }
+
+        Symbol s_sg_gens(sg_gens.size());
+        for (int i = 0; i < sg_gens.size(); ++i) {
+            s_sg_gens[i] = inv_gen_map[sg_gens[i]];
+        }
+        std::sort(s_sg_gens.begin(),  s_sg_gens.end());
+
+        return s_sg_gens;
     }
 
     /**

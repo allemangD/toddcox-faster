@@ -8,23 +8,23 @@
 #include <tc/groups.hpp>
 #include <tc/solver.hpp>
 
-std::vector<unsigned int> parse_vec(const std::string &part) {
+tc::Symbol parse_vec(const std::string &part) {
     std::istringstream iss(part);
 
-    std::vector<unsigned int> res;
+    std::vector<unsigned int> vec;
 
     std::string token;
     while (std::getline(iss, token, ' ')) {
-        res.push_back(std::stoul(token));
+        vec.push_back(std::stoul(token));
     }
 
-    return res;
+    return Eigen::Map<tc::Symbol>(vec.data(), vec.size());
 }
 
 size_t compute(
     const tc::Group &group,
-    const std::vector<unsigned int> &vgens
+    const tc::Symbol &gens
 ) {
-    auto table = tc::solve(group, vgens);
+    auto table = tc::solve(group, gens);
     return table.order();
 }

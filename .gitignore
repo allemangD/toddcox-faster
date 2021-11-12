@@ -2,3 +2,5 @@
 
 *.[oa]
 cmake-build*
+
+Testing/Temporary

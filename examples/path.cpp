@@ -6,8 +6,9 @@
 #include <tc/groups.hpp>
 
 int main() {
+    tc::Symbol gens(0);
     auto cube = tc::group::B(3);
-    auto vars = tc::solve(cube);
+    auto vars = tc::solve(cube, gens);
 
     std::string start;
     std::vector<std::string> names = {"a", "b", "c"};
