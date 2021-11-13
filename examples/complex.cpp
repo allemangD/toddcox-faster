@@ -5,11 +5,11 @@
 #include <tc/complex.hpp>
 #include <tc/groups.hpp>
 
-template<unsigned int N, class G>
-void test(const G &group) {
+template<class G>
+void test(const G &group, unsigned int N) {
     auto s = std::clock();
     auto combos = tc::combinations(group.gens, N - 1);
-    auto data = tc::merge<N>(tc::hull<N>(group, combos, {}));
+    auto data = tc::merge(tc::hull(group, combos, {}));
     auto e = std::clock();
 
     double diff = (double) (e - s) / CLOCKS_PER_SEC;
@@ -24,17 +24,16 @@ void test(const G &group) {
 }
 
 int main() {
-    test<4>(tc::group::H(4));
-    test<4>(tc::group::B(4));
-    test<4>(tc::group::B(5));
-    test<4>(tc::group::B(6));
-    test<4>(tc::group::E(6));
-
-    test<3>(tc::group::H(3));
-    test<3>(tc::group::B(4));
-    test<3>(tc::group::B(5));
-    test<3>(tc::group::B(6));
-    test<3>(tc::group::E(6));
+    test(tc::group::H(4), 4);
+    test(tc::group::B(4), 4);
+    test(tc::group::B(5), 4);
+    test(tc::group::B(6), 4);
+    test(tc::group::E(6), 4);
+    test(tc::group::H(3), 3);
+    test(tc::group::B(4), 3);
+    test(tc::group::B(5), 3);
+    test(tc::group::B(6), 3);
+    test(tc::group::E(6), 3);
 
     return 0;
 }
