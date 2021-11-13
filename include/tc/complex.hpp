@@ -31,12 +31,6 @@ namespace tc {
         return combos;
     }
 
-    Symbol fan(const Symbol &prim, unsigned root) {
-        Symbol res(prim.size() + 1);
-        res << prim, root;
-        return res;
-    }
-
     std::vector<Symbol> fan(const std::vector<Symbol>& prims, int root) {
         std::vector<Symbol> res;
         res.reserve(prims.size());
@@ -48,62 +42,11 @@ namespace tc {
         return res;
     }
 
-    void flip(Symbol &prim) {
-        if (prim.size() > 1) {
-            std::swap(prim[0], prim[1]);
-        }
-    }
-
-    void apply(const tc::Cosets &table, unsigned int gen, Symbol &prim) {
-        for (auto &ind: prim) {
-            ind = table.get(ind, gen);
-        }
-        flip(prim);
-    }
-
     void apply(const tc::Cosets &table, unsigned int gen, std::vector<Symbol> &prims) {
         for (auto &prim: prims) {
-            apply(table, gen, prim);
-        }
-    }
-
-/**
- * Produce a list of all generators for the group context. The range [0..group.rank).
- */
-    std::vector<unsigned int> generators(const tc::Group &context) {
-        std::vector<unsigned int> g_gens(context.rank());
-        std::iota(g_gens.begin(), g_gens.end(), 0);
-        return g_gens;
-    }
-
-/**
- * Determine whether the orientation of the group sg_gens is reversed from the group g_gens within group context
- */
-    int get_parity(
-        const tc::Group &context,
-        const Symbol &g_gens,
-        const Symbol &sg_gens
-    ) {
-        if (g_gens.size() != sg_gens.size() + 1) return 0;
-
-        const auto proper_sg_gens = recontext_gens(context.rank(), g_gens, sg_gens);
-
-        int i = 0;
-        for (; i < sg_gens.size(); ++i) {
-            if (proper_sg_gens[i] != i) {
-                break;
+            for (auto &ind : prim) {
+                ind = table.get(ind, gen);
             }
-        }
-
-        return i & 1;
-    }
-
-/**
- * Reverse the orientation of all primitives in this mesh.
- */
-    void flip(std::vector<Symbol> &prims) {
-        for (auto &prim: prims) {
-            flip(prim);
         }
     }
 
@@ -130,9 +73,6 @@ namespace tc {
                 ind = map[ind];
             }
         }
-
-        if (get_parity(context, g_gens, sg_gens) == 1)
-            flip(prims);
     }
 
 /**
@@ -164,7 +104,7 @@ namespace tc {
         const auto table = solve(context, g_gens, Symbol(0));
         const auto path = solve(context, g_gens, sg_gens).path();
 
-        auto _gens = generators(context);
+        auto _gens = context.gens;
 
         auto res = path.walk(base, _gens, [&table](auto from, auto &gen) {
             apply(table, gen, from);
