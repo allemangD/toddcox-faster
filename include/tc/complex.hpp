@@ -31,6 +31,7 @@ namespace tc {
         return combos;
     }
 
+    // todo remove
     ArrayXui fan(const ArrayXui &prims, int root) {
         ArrayXui res(prims.rows() + 1, prims.cols());
         res.topRows(prims.rows()) << prims;
@@ -38,6 +39,7 @@ namespace tc {
         return res;
     }
 
+    // todo visitor
     void apply(const tc::Cosets &table, unsigned int gen, ArrayXui &prims) {
         for (Eigen::Index i = 0; i < prims.size(); ++i) {
             prims(i) = table.get(prims(i), gen);
@@ -62,14 +64,13 @@ namespace tc {
             return table.get(coset, gen);
         });
 
+        // todo visitor
         for (Eigen::Index i = 0; i < prims.size(); ++i) {
             prims(i) = map[prims(i)];
         }
     }
 
-/**
- * Union several meshes of the same dimension
- */
+    // todo remove
     ArrayXui merge(const std::vector<ArrayXui> &meshes) {
         Eigen::Index cols = 0;
         for (const auto &mesh: meshes) {
@@ -115,14 +116,26 @@ namespace tc {
         const Symbol &g_gens
     ) {
         if (g_gens.size() == 0) {
-            ArrayXui res(1, 1);
-            res.setZero();
-            return res;
+            return ArrayXui::Zero(1, 1);
         }
 
         const auto &combos = combinations(g_gens, g_gens.size() - 1);
 
         std::vector<ArrayXui> meshes;
+
+        // todo inline logic
+        //  erase, merge, and fan can be inlined
+        //  for 1..#tiles
+        //   cols += cols
+        //   parts.append(cols)
+        //  result(rows, cols)
+        //  for 1..#parts
+        //   result.middlecols << part
+        //  result.bottomrow.fill(0)
+
+        // todo subgroup/coset metadata
+        //  would be good to also output which coset of which subgroup each primitive is a part of.
+        //  this could be used in shaders etc to make rendering things easier
 
         for (const auto &sg_gens: combos) {
             auto base = triangulate(context, sg_gens);
@@ -141,6 +154,10 @@ namespace tc {
     auto hull(const tc::Group &group, T all_sg_gens) {
         std::vector<ArrayXui> parts;
         auto g_gens = group.gens;
+
+        // todo inline logic
+        //  should be able to inline in a similar way as is possible in triangulate
+
         for (const Symbol &sg_gens: all_sg_gens) {
             const auto &base = triangulate(group, sg_gens);
             const auto &tiles = each_tile(base, group, g_gens, sg_gens);
