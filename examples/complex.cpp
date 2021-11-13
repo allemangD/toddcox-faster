@@ -9,11 +9,11 @@ template<class G>
 void test(const G &group, unsigned int N) {
     auto s = std::clock();
     auto combos = tc::combinations(group.gens, N - 1);
-    auto data = tc::merge(tc::hull(group, combos, {}));
+    auto data = tc::merge(tc::hull(group, combos));
     auto e = std::clock();
 
     double diff = (double) (e - s) / CLOCKS_PER_SEC;
-    int count = data.size();
+    int count = data.cols();
 
     std::cout
         << std::setw(2) << N << ", "

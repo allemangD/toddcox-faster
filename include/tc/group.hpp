@@ -19,6 +19,7 @@ namespace tc {
     using Symbol = Eigen::Vector<unsigned int, Eigen::Dynamic>;
 
     using MatrixXui = Eigen::Matrix<unsigned int, Eigen::Dynamic, Eigen::Dynamic>;
+    using ArrayXui = Eigen::Array<unsigned int, Eigen::Dynamic, Eigen::Dynamic>;
 
     /// A Coxeter Matrix
     class Group : public MatrixXui {
